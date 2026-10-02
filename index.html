@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="ko" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>마인 도장 생성기 | 온라인 도장 만들기</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Base64 Embedded Local Fonts CSS -->
+  <link rel="stylesheet" href="./fonts/fonts.css" />
+
+  <!-- Google Fonts CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&family=Nanum+Myeongjo:wght@700;800&family=Noto+Sans+KR:wght@500;700;900&family=Noto+Serif+KR:wght@600;700;900&family=Song+Myung&display=swap" rel="stylesheet" />
+
+  <style>
+        /* Local Installed Fonts (@font-face mapping) */
+    @font-face {
+      font-family: 'HJ한전서A';
+      src: url('./fonts/HJ한전서A.ttf') format('truetype'),
+           url('./fonts/hanjeonseo-a.ttf') format('truetype'),
+           local('HJ한전서A'), local('HJ-HanJeonSeoA'), local('HJHanJeonSeoA'), local('HanjeonseoA'), local('한전서A');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'HJ한전서B';
+      src: url('./fonts/HJ한전서B.ttf') format('truetype'),
+           url('./fonts/hanjeonseo-b.ttf') format('truetype'),
+           local('HJ한전서B'), local('HJ-HanJeonSeoB'), local('HJHanJeonSeoB'), local('HanjeonseoB'), local('한전서B');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    /* 4 Column Font Classes */
+    .font-col-1 { font-family: 'HJ한전서A', 'HanjeonseoA', 'Song Myung', 'Noto Serif KR', serif; }
+    .font-col-2 { font-family: 'HJ한전서B', 'HanjeonseoB', 'Song Myung', 'Noto Serif KR', serif; }
+    .font-col-3 { font-family: 'Gungsuh', '궁서체', 'Song Myung', serif; }
+    .font-col-4 { font-family: 'Noto Serif KR', 'Nanum Myeongjo', serif; }
+
+    /* Canvas Optimization */
+    canvas {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+  </style>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            sealRed: '#E53E3E',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-full flex flex-col justify-between selection:bg-rose-500 selection:text-white">
+
+  <!-- Header & Top Navigation -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo & Title: 마인 도장 생성기 -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 via-red-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-rose-500/20">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.75a2.25 2.25 0 0 1 2.25 2.25v12a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-12A2.25 2.25 0 0 1 7.5 3.75h9z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4" />
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-black text-xl text-slate-900 tracking-tight flex items-center gap-1.5">
+            마인 <span class="bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent">도장 생성기</span>
+          </span>
+          <span class="text-[11px] font-bold text-slate-400">온라인 개인도장 & 법인인감 12종 즉시 생성</span>
+        </div>
+      </div>
+
+      <!-- Top Navigation Tabs (서명하기 | 서명 만들기 | 도장 만들기) -->
+      <nav class="flex items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200/80">
+        <button onclick="switchTopTab('sign')" id="tab-sign" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition">
+          서명하기
+        </button>
+        <button onclick="switchTopTab('createSig')" id="tab-createSig" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition">
+          서명 만들기
+        </button>
+        <button onclick="switchTopTab('stamp')" id="tab-stamp" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-sm transition">
+          도장 만들기
+        </button>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- Main Workspace Container -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8 space-y-6">
+
+    <!-- Input Control Card Section -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200/80 space-y-6">
+      
+      <!-- Section Title & Mode Indicator -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div>
+          <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <span>도장 12종 실시간 생성</span>
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">
+            이름이나 상호명을 입력하면 4가지 서체와 3가지 형태로 12개의 인감을 즉시 렌더링합니다.
+          </p>
+        </div>
+
+        <!-- Mode Badge Indicator -->
+        <div id="categoryBadge" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
+          <span>개인 도장 모드 (4자 이하)</span>
+        </div>
+      </div>
+
+      <!-- Controls Form -->
+      <form onsubmit="handleGenerate(event)" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        
+        <!-- Language Select Dropdown -->
+        <div class="md:col-span-3 space-y-1.5">
+          <label class="text-xs font-bold text-slate-700 flex items-center gap-1">
+            <span>언어 선택</span>
+          </label>
+          <select id="langSelect" onchange="updateGrid()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm font-bold rounded-xl px-3.5 py-3 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition">
+            <option value="ko" selected>국문 (한글)</option>
+            <option value="en">영문 (English)</option>
+            <option value="han">한문 (한자)</option>
+          </select>
+        </div>
+
+        <!-- Text Input with Char Counter -->
+        <div class="md:col-span-6 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-slate-700">
+              이름 또는 상호명 입력
+            </label>
+            <span id="charCounter" class="text-xs font-extrabold text-slate-400">
+              (3/14자)
+            </span>
+          </div>
+          
+          <div class="relative flex items-center">
+            <input
+              type="text"
+              id="nameInput"
+              maxlength="14"
+              value="배종호"
+              oninput="handleInput(event)"
+              placeholder="예: 배종호 또는 주식회사마인오피스"
+              class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-base font-bold rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition"
+            />
+            
+            <div class="absolute right-2 flex items-center gap-1">
+              <button type="button" onclick="setPreset('배종호')" class="text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-slate-200/70 px-2 py-1 rounded-md transition">
+                개인예시
+              </button>
+              <button type="button" onclick="setPreset('주식회사마인오피스')" class="text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md transition">
+                법인예시
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generate Button -->
+        <div class="md:col-span-3">
+          <button
+            type="submit"
+            class="w-full bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-600 text-white font-extrabold text-sm py-3 px-5 rounded-xl shadow-lg shadow-rose-500/25 active:scale-[0.98] transition flex items-center justify-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            </svg>
+            <span>만들기</span>
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+
+    <!-- Results Grid Section (4 Columns x 3 Rows) -->
+    <div class="space-y-4">
+      
+      <!-- Section Info Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-100 px-5 py-3 rounded-2xl border border-slate-200/80">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-rose-500 animate-ping"></span>
+          <h2 id="gridTitle" class="font-black text-slate-800 text-sm sm:text-base">
+            생성된 도장 12종 목록 (배종호 — 개인 도장)
+          </h2>
+        </div>
+        <span class="text-xs font-medium text-slate-500">
+          도장 카드를 클릭하거나 우측 하단 아이콘으로 투명 PNG 다운로드가 가능합니다.
+        </span>
+      </div>
+
+      <!-- 4x3 Stamp Grid Container (Clean Design: Canvas + Download Icon ONLY) -->
+      <div id="stampGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Generated Dynamically via JS -->
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Modal for Selected Stamp -->
+  <div id="stampModal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200 space-y-6 relative animate-in fade-in zoom-in duration-200">
+      
+      <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition">
+        ✕
+      </button>
+
+      <div class="text-center space-y-1">
+        <span class="inline-block bg-rose-50 text-rose-600 text-xs font-black px-3 py-1 rounded-full border border-rose-200">
+          도장 다운로드 준비완료
+        </span>
+        <h3 id="modalTitle" class="text-xl font-black text-slate-900 pt-1">
+          도장 상세보기
+        </h3>
+      </div>
+
+      <!-- Large Preview Canvas -->
+      <div class="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-200 relative">
+        <div class="w-48 h-48 bg-white rounded-2xl shadow-inner border border-slate-200 p-2 flex items-center justify-center">
+          <canvas id="modalCanvas" width="300" height="300" class="w-full h-full object-contain"></canvas>
+        </div>
+        <p id="modalDesc" class="mt-3 text-xs font-semibold text-slate-500">
+          고해상도 투명 배경 PNG 포맷
+        </p>
+      </div>
+
+      <!-- Modal Action Buttons -->
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="closeModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-sm py-3 px-4 rounded-xl border border-slate-300 transition">
+          닫기
+        </button>
+        <button id="modalDownloadBtn" onclick="downloadCurrentModalStamp()" class="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-600 text-white font-extrabold text-sm py-3 px-4 rounded-xl shadow-lg shadow-rose-500/25 transition flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          <span>PNG 다운로드</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
+    <span>도장 이미지가 생성되었습니다.</span>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12">
+    <div class="max-w-6xl mx-auto px-4 text-center text-xs font-semibold text-slate-400">
+      © 2026 마인 도장 생성기 — HTML5 Canvas 12종 고해상도 인감 엔진
+    </div>
+  </footer>
+
+  <!-- CORE STAMP GENERATION JAVASCRIPT LOGIC -->
+  <script>
+    // Color Constant (Authentic Seal Red)
+    const STAMP_COLOR = '#E53E3E';
+
+    // 4 Column Fonts Mapping (1~4열 각각 지정된 고유 서체 & Fallback 체인)
+    // 1열: 'HJ한전서A' (전서체 A)
+    // 2열: 'HJ한전서B' (전서체 B)
+    // 3열: 'Gungsuh' (궁서체)
+    // 4열: 'Noto Serif KR' (정통 명조)
+        const FONT_COLUMNS = [
+      { id: 'col1', name: 'HJ한전서A', fontCss: "'HJ한전서A', 'HanjeonseoA', 'Song Myung', 'Noto Serif KR', serif" },
+      { id: 'col2', name: 'HJ한전서B', fontCss: "'HJ한전서B', 'HanjeonseoB', 'Song Myung', 'Noto Serif KR', serif" },
+      { id: 'col3', name: 'Gungsuh', fontCss: "'Gungsuh', '궁서체', 'Song Myung', serif" },
+      { id: 'col4', name: 'Noto Serif KR', fontCss: "'Noto Serif KR', 'Nanum Myeongjo', serif" }
+    ];
+
+    let currentInput = '배종호';
+    let currentSelectedPattern = null;
+
+    // Detect Personal vs Corporate Category
+    function detectCategory(text) {
+      const trimmed = (text || '').trim();
+      const corpKeywords = ['주식회사', '(주)', '유한회사', '합자회사', '사단법인', '재단법인'];
+      const hasCorpKeyword = corpKeywords.some(kw => trimmed.includes(kw));
+      if (trimmed.length >= 5 || hasCorpKeyword) {
+        return 'corporate';
+      }
+      return 'personal';
+    }
+
+    // Generate 12 Pattern Metadata (4 Cols x 3 Rows)
+    function get12Patterns(text) {
+      const category = detectCategory(text);
+      const list = [];
+
+      if (category === 'personal') {
+        // Row 1: Oval (세로 타원형)
+        for (let col = 0; col < 4; col++) {
+          list.push({
+            id: `p_r1_c${col+1}`, category: 'personal', row: 1, col: col+1,
+            shape: 'oval', fontObj: FONT_COLUMNS[col]
+          });
+        }
+        // Row 2: Square (정사각형 2x2)
+        for (let col = 0; col < 4; col++) {
+          list.push({
+            id: `p_r2_c${col+1}`, category: 'personal', row: 2, col: col+1,
+            shape: 'square_personal', fontObj: FONT_COLUMNS[col]
+          });
+        }
+        // Row 3: Circle (원형 2x2)
+        for (let col = 0; col < 4; col++) {
+          list.push({
+            id: `p_r3_c${col+1}`, category: 'personal', row: 3, col: col+1,
+            shape: 'circle_personal', fontObj: FONT_COLUMNS[col]
+          });
+        }
+      } else {
+        // Corporate Patterns
+        // Row 1: Corporate Square (사각 직인)
+        for (let col = 0; col < 4; col++) {
+          list.push({
+            id: `c_r1_c${col+1}`, category: 'corporate', row: 1, col: col+1,
+            shape: 'square_corporate', fontObj: FONT_COLUMNS[col]
+          });
+        }
+        // Row 2: Corporate Circle Dot (원형 대표인 - 구분기호 ●)
+        for (let col = 0; col < 4; col++) {
+          list.push({
+            id: `c_r2_c${col+1}`, category: 'corporate', row: 2, col: col+1,
+            shape: 'circle_corporate_dot', symbol: '●', fontObj: FONT_COLUMNS[col]
+          });
+        }
+        // Row 3: Corporate Circle Star (원형 대표인 - 구분기호 ★)
+        for (let col = 0; col < 4; col++) {
+          list.push({
+            id: `c_r3_c${col+1}`, category: 'corporate', row: 3, col: col+1,
+            shape: 'circle_corporate_star', symbol: '★', fontObj: FONT_COLUMNS[col]
+          });
+        }
+      }
+      return list;
+    }
+
+    // Canvas Main Render Dispatcher
+    function renderStamp(canvas, pattern, text) {
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const width = 300;
+      const height = 300;
+      canvas.width = width;
+      canvas.height = height;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = STAMP_COLOR;
+      ctx.strokeStyle = STAMP_COLOR;
+
+      const fontCss = pattern.fontObj.fontCss;
+      const rawText = (text || '배종호').trim();
+
+      switch (pattern.shape) {
+        case 'oval':
+          drawPersonalOval(ctx, width, height, rawText, fontCss);
+          break;
+        case 'square_personal':
+          drawPersonalSquare(ctx, width, height, rawText, fontCss);
+          break;
+        case 'circle_personal':
+          drawPersonalCircle(ctx, width, height, rawText, fontCss);
+          break;
+        case 'square_corporate':
+          drawCorporateSquare(ctx, width, height, rawText, fontCss);
+          break;
+        case 'circle_corporate_dot':
+          drawCorporateCircle(ctx, width, height, rawText, '●', fontCss, pattern.col);
+          break;
+        case 'circle_corporate_star':
+          drawCorporateCircle(ctx, width, height, rawText, '★', fontCss, pattern.col);
+          break;
+      }
+    }
+
+    // ----------------------------------------------------
+    // Canvas Drawing Routines (Bold Ink Layering)
+    // ----------------------------------------------------
+
+    // 1. Personal Oval (세로 타원형)
+    function drawPersonalOval(ctx, width, height, text, fontCss) {
+      const cx = width / 2;
+      const cy = height / 2;
+      const rx = 60;
+      const ry = 100;
+
+      ctx.lineWidth = 5.5;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx - 4.5, ry - 4.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const cleanText = text.slice(0, 4);
+      const count = cleanText.length;
+
+      let fontSize = 46;
+      let spacing = 56;
+      let scaleX = 1.08;
+      let scaleY = 1.25;
+
+      if (count <= 2) { 
+        fontSize = 54; 
+        spacing = 74; 
+        scaleX = 1.12; 
+        scaleY = 1.38; 
+      }
+      else if (count === 3) { 
+        fontSize = 46; 
+        spacing = 58; 
+        scaleX = 1.08; 
+        scaleY = 1.26; 
+      }
+      else if (count >= 4) { 
+        fontSize = 38; 
+        spacing = 44; 
+        scaleX = 1.05; 
+        scaleY = 1.18; 
+      }
+
+      const startY = cy - ((count - 1) * spacing) / 2;
+
+      for (let i = 0; i < count; i++) {
+        ctx.save();
+        ctx.translate(cx, startY + i * spacing);
+        ctx.scale(scaleX, scaleY);
+        ctx.font = `bold ${fontSize}px ${fontCss}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.lineWidth = 1.2;
+        ctx.strokeText(cleanText[i], 0, 0);
+        ctx.fillText(cleanText[i], 0, 0);
+        ctx.restore();
+      }
+    }
+
+    // 2. Personal Square (정사각형 2x2)
+    function drawPersonalSquare(ctx, width, height, rawText, fontCss) {
+      const cx = width / 2;
+      const cy = height / 2;
+
+      let text = rawText.trim();
+      if (text.length === 3 && !text.endsWith('인')) { text += '인'; }
+      else if (text.length === 2 && !text.endsWith('인')) { text += '인인'; }
+      text = text.slice(0, 4);
+
+      const boxW = 200;
+      const boxH = 200;
+      const boxX = cx - boxW / 2;
+      const boxY = cy - boxH / 2;
+
+      ctx.lineWidth = 6;
+      ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(boxX + 4.5, boxY + 4.5, boxW - 9, boxH - 9);
+
+      // Matrix order: Top-Right (text[0]), Bottom-Right (text[1]), Top-Left (text[2]), Bottom-Left (text[3])
+      const offset = 45;
+      const pos = [
+        { x: cx + offset, y: cy - offset, char: text[0] || '' },
+        { x: cx + offset, y: cy + offset, char: text[1] || '' },
+        { x: cx - offset, y: cy - offset, char: text[2] || '' },
+        { x: cx - offset, y: cy + offset, char: text[3] || '' }
+      ];
+
+      const fontSize = 44;
+      pos.forEach(p => {
+        if (!p.char) return;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.scale(1.14, 1.26);
+        ctx.font = `bold ${fontSize}px ${fontCss}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.lineWidth = 1.3;
+        ctx.strokeText(p.char, 0, 0);
+        ctx.fillText(p.char, 0, 0);
+        ctx.restore();
+      });
+    }
+
+    // 3. Personal Circle (원형 2x2)
+    function drawPersonalCircle(ctx, width, height, rawText, fontCss) {
+      const cx = width / 2;
+      const cy = height / 2;
+
+      let text = rawText.trim();
+      if (text.length === 3 && !text.endsWith('인')) { text += '인'; }
+      else if (text.length === 2 && !text.endsWith('인')) { text += '인인'; }
+      text = text.slice(0, 4);
+
+      const radius = 102;
+
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - 4.5, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const offset = 44;
+      const pos = [
+        { x: cx + offset, y: cy - offset, char: text[0] || '' },
+        { x: cx + offset, y: cy + offset, char: text[1] || '' },
+        { x: cx - offset, y: cy - offset, char: text[2] || '' },
+        { x: cx - offset, y: cy + offset, char: text[3] || '' }
+      ];
+
+      const fontSize = 44;
+      pos.forEach(p => {
+        if (!p.char) return;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.scale(1.14, 1.26);
+        ctx.font = `bold ${fontSize}px ${fontCss}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.lineWidth = 1.3;
+        ctx.strokeText(p.char, 0, 0);
+        ctx.fillText(p.char, 0, 0);
+        ctx.restore();
+      });
+    }
+
+    // 4. Corporate Square Seal (사각 직인 - 글자수 및 열별 최적 비율 정밀 핏)
+    function drawCorporateSquare(ctx, width, height, rawText, fontCss) {
+      const cx = width / 2;
+      const cy = height / 2;
+      const text = rawText.trim();
+
+      const boxW = 220;
+      const boxH = 220;
+      const boxX = cx - boxW / 2;
+      const boxY = cy - boxH / 2;
+
+      ctx.lineWidth = 7.0;
+      ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+      ctx.lineWidth = 2.0;
+      ctx.strokeRect(boxX + 4.5, boxY + 4.5, boxW - 9, boxH - 9);
+
+      const length = text.length;
+      let colCount = length <= 8 ? 2 : 3;
+
+      const cols = [];
+      if (colCount === 2) {
+        if (text.startsWith('주식회사') && length >= 6) {
+          cols.push(text.slice(0, 4).split(''));
+          cols.push(text.slice(4).split(''));
+        } else {
+          const firstColCount = Math.ceil(length / 2);
+          cols.push(text.slice(0, firstColCount).split(''));
+          cols.push(text.slice(firstColCount).split(''));
+        }
+      } else {
+        if (text.startsWith('주식회사') && length >= 9) {
+          cols.push(text.slice(0, 4).split(''));
+          const rem = length - 4;
+          const midCount = Math.ceil(rem / 2);
+          cols.push(text.slice(4, 4 + midCount).split(''));
+          cols.push(text.slice(4 + midCount).split(''));
+        } else {
+          const c1 = Math.ceil(length / 3);
+          const c2 = Math.ceil((length - c1) / 2);
+          cols.push(text.slice(0, c1).split(''));
+          cols.push(text.slice(c1, c1 + c2).split(''));
+          cols.push(text.slice(c1 + c2).split(''));
+        }
+      }
+
+      const innerW = boxW - 20;
+      const innerH = boxH - 20;
+      const colWidth = innerW / colCount;
+
+      cols.forEach((colChars, colIdx) => {
+        const xPos = cx + ((colCount - 1) / 2 - colIdx) * colWidth;
+        const rCount = colChars.length;
+        if (rCount === 0) return;
+
+        const rowHeight = innerH / rCount;
+        const startY = cy - ((rCount - 1) * rowHeight) / 2;
+
+        let fontSize = 42;
+        let scaleX = 1.20;
+        let scaleY = 1.30;
+
+        if (colCount === 2) {
+          if (rCount === 4) { fontSize = 42; scaleX = 1.20; scaleY = 1.28; }
+          else if (rCount === 3) { fontSize = 44; scaleX = 1.24; scaleY = 1.58; }
+          else if (rCount === 2) { fontSize = 46; scaleX = 1.28; scaleY = 2.05; }
+          else if (rCount === 1) { fontSize = 50; scaleX = 1.32; scaleY = 2.50; }
+        } else {
+          if (rCount === 4) { fontSize = 38; scaleX = 1.15; scaleY = 1.25; }
+          else if (rCount === 3) { fontSize = 40; scaleX = 1.18; scaleY = 1.50; }
+          else if (rCount === 2) { fontSize = 42; scaleX = 1.22; scaleY = 1.95; }
+          else if (rCount === 1) { fontSize = 46; scaleX = 1.26; scaleY = 2.40; }
+        }
+
+        colChars.forEach((char, rIdx) => {
+          const yPos = startY + rIdx * rowHeight;
+          ctx.save();
+          ctx.translate(xPos, yPos);
+          ctx.scale(scaleX, scaleY);
+          ctx.font = `bold ${fontSize}px ${fontCss}`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          ctx.lineWidth = 1.2;
+          ctx.strokeText(char, 0, 0);
+          ctx.fillText(char, 0, 0);
+          ctx.restore();
+        });
+      });
+    }
+
+    // Helper function to calculate donut ring font size, scaling, and stroke for tight full fitting
+    function getDonutTextStyle(len) {
+      if (len <= 5) {
+        return { fontSize: 39, scaleX: 1.38, scaleY: 1.46, strokeWidth: 1.7 };
+      } else if (len === 6) {
+        return { fontSize: 36, scaleX: 1.32, scaleY: 1.40, strokeWidth: 1.6 };
+      } else if (len <= 8) {
+        return { fontSize: 32, scaleX: 1.26, scaleY: 1.34, strokeWidth: 1.5 };
+      } else if (len <= 10) {
+        return { fontSize: 27, scaleX: 1.20, scaleY: 1.26, strokeWidth: 1.3 };
+      } else if (len <= 12) {
+        return { fontSize: 23, scaleX: 1.14, scaleY: 1.20, strokeWidth: 1.2 };
+      } else {
+        return { fontSize: 20, scaleX: 1.08, scaleY: 1.15, strokeWidth: 1.0 };
+      }
+    }
+
+    // 5 & 6. Corporate Circle Seal (원형 법인 인감 - 1~4열 도넛 테두리와 원 안 모두 테두리 글자와 동일한 폰트로 여백 없이 꽉 채우기)
+    function drawCorporateCircle(ctx, width, height, rawText, symbol, fontCss, colIndex) {
+      const cx = width / 2;
+      const cy = height / 2;
+
+      const outerR = 110;
+      const middleR = 64;
+      const ringR = 86.5;
+
+      // 1. Outer Circle
+      ctx.lineWidth = 6.0;
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 2. Middle Circle (Inner Circle Border)
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, middleR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 3. Center Text inside Inner Circle ("대표이사" / "代表理事")
+      // 테두리 글자(fontCss)와 100% 동일한 폰트를 사용하여 1열, 2열, 3열, 4열 모두 원 안에 여백 없이 꽉 채우기
+      const xOffset = 17.0;
+      const yOffset = 19.0;
+      const langVal = (document.getElementById('langSelect')?.value) || 'ko';
+      const isHanja = langVal === 'han';
+
+      const positions = isHanja ? [
+        { char: '代', x: cx + xOffset, y: cy - yOffset },
+        { char: '表', x: cx + xOffset, y: cy + yOffset },
+        { char: '理', x: cx - xOffset, y: cy - yOffset },
+        { char: '事', x: cx - xOffset, y: cy + yOffset }
+      ] : [
+        { char: '대', x: cx + xOffset, y: cy - yOffset },
+        { char: '표', x: cx + xOffset, y: cy + yOffset },
+        { char: '이', x: cx - xOffset, y: cy - yOffset },
+        { char: '사', x: cx - xOffset, y: cy + yOffset }
+      ];
+
+      const fontSize = 44; // 원 안 여백 없이 꽉 채우는 폰트 크기
+      positions.forEach(p => {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.scale(1.14, 1.25);
+        ctx.font = `bold ${fontSize}px ${fontCss}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.lineWidth = 1.4;
+        ctx.strokeText(p.char, 0, 0);
+        ctx.fillText(p.char, 0, 0);
+        ctx.restore();
+      });
+
+      // 4. Circular Outer Ring Text (도넛 테두리원에 상호명 아주 꽉 채우기 + 상단 구분기호 2행: ●, 3행: ★)
+      const companyName = rawText.trim();
+      const chars = companyName.split('');
+      const totalItems = chars.length + 1;
+
+      const angleStep = (2 * Math.PI) / totalItems;
+      const startAngle = 0; // 12 o'clock position
+
+      const style = getDonutTextStyle(chars.length);
+
+      // Top Symbol (2행: ●, 3행: ★)
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(startAngle);
+      ctx.translate(0, -ringR);
+      ctx.font = `bold ${Math.max(26, style.fontSize)}px 'Noto Serif KR', 'Nanum Myeongjo', 'Gungsuh', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = style.strokeWidth;
+      ctx.strokeText(symbol, 0, 0);
+      ctx.fillText(symbol, 0, 0);
+      ctx.restore();
+
+      chars.forEach((char, i) => {
+        const angle = startAngle + (i + 1) * angleStep;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+        ctx.translate(0, -ringR);
+        ctx.scale(style.scaleX, style.scaleY);
+
+        ctx.font = `bold ${style.fontSize}px ${fontCss}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.lineWidth = style.strokeWidth;
+        ctx.strokeText(char, 0, 0);
+        ctx.fillText(char, 0, 0);
+        ctx.restore();
+      });
+    }
+
+    // UI Clean Layout Rendering (Canvas + Download Icon ONLY, No Badge Text)
+    function updateGrid() {
+      const nameInput = document.getElementById('nameInput');
+      if (!nameInput) return;
+      const name = nameInput.value.trim() || '배종호';
+      currentInput = name;
+      const category = detectCategory(name);
+
+      const categoryBadge = document.getElementById('categoryBadge');
+      const gridTitle = document.getElementById('gridTitle');
+      const charCounter = document.getElementById('charCounter');
+
+      if (charCounter) charCounter.innerText = `(${name.length}/14자)`;
+
+      if (categoryBadge && gridTitle) {
+        if (category === 'personal') {
+          categoryBadge.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs";
+          categoryBadge.innerHTML = '<span>개인 도장 모드 (4자 이하)</span>';
+          gridTitle.innerText = `생성된 도장 12종 목록 (${name} — 개인 도장)`;
+        } else {
+          categoryBadge.className = "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs";
+          categoryBadge.innerHTML = '<span>법인 도장 모드 (5자 이상 / 상호명)</span>';
+          gridTitle.innerText = `생성된 도장 12종 목록 (${name} — 법인 도장)`;
+        }
+      }
+
+      const patterns = get12Patterns(name);
+      const grid = document.getElementById('stampGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      patterns.forEach((p) => {
+        const card = document.createElement('div');
+        // Clean Stamp Card UI: ONLY Canvas + Download Icon at Bottom Right
+        card.className = "group relative bg-white rounded-2xl p-4 border border-slate-200/80 hover:border-rose-400 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col items-center justify-between cursor-pointer hover:-translate-y-1";
+        card.onclick = () => openModal(p);
+
+        card.innerHTML = `
+          <div class="w-full aspect-square flex items-center justify-center p-2 bg-slate-50/50 rounded-xl border border-slate-100">
+            <canvas id="canvas_${p.id}" class="w-full h-full object-contain filter drop-shadow-xs transition group-hover:scale-105"></canvas>
+          </div>
+
+          <div class="w-full mt-3 pt-2 border-t border-slate-100 flex items-center justify-end">
+            <button onclick="event.stopPropagation(); downloadStamp('${p.id}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-1 text-xs font-bold" title="PNG 다운로드">
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            </button>
+          </div>
+        `;
+
+        grid.appendChild(card);
+
+        // Render Canvas
+        setTimeout(() => {
+          const cvs = document.getElementById(`canvas_${p.id}`);
+          renderStamp(cvs, p, name);
+        }, 0);
+      });
+    }
+
+    function generateStamps() {
+      updateGrid();
+    }
+
+    function handleInput(e) {
+      updateGrid();
+    }
+
+    function handleGenerate(e) {
+      if (e) e.preventDefault();
+      updateGrid();
+      showToast('12종 도장이 새로 생성되었습니다.');
+    }
+
+    function setPreset(val) {
+      document.getElementById('nameInput').value = val;
+      updateGrid();
+      showToast(`예시 '${val}'로 변경되었습니다.`);
+    }
+
+    function switchTopTab(tabId) {
+      ['sign', 'createSig', 'stamp'].forEach(id => {
+        const btn = document.getElementById(`tab-${id}`);
+        if (btn) {
+          if (id === tabId) {
+            btn.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-sm transition";
+          } else {
+            btn.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition";
+          }
+        }
+      });
+    }
+
+    // Modal & PNG Download Functions
+    function openModal(pattern) {
+      currentSelectedPattern = pattern;
+      const modal = document.getElementById('stampModal');
+      const title = document.getElementById('modalTitle');
+      const desc = document.getElementById('modalDesc');
+      const mCanvas = document.getElementById('modalCanvas');
+
+      if (title) title.innerText = `도장 상세보기`;
+      if (desc) desc.innerText = `${currentInput} (투명 배경 PNG)`;
+
+      renderStamp(mCanvas, pattern, currentInput);
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('stampModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function downloadStamp(patternId) {
+      const patterns = get12Patterns(currentInput);
+      const pattern = patterns.find(p => p.id === patternId);
+      if (!pattern) return;
+
+      const tempCanvas = document.createElement('canvas');
+      renderStamp(tempCanvas, pattern, currentInput);
+
+      const link = document.createElement('a');
+      link.download = `${currentInput}_${pattern.shape}.png`;
+      link.href = tempCanvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast('투명 PNG 도장이 다운로드되었습니다.');
+    }
+
+    function downloadCurrentModalStamp() {
+      if (currentSelectedPattern) {
+        downloadStamp(currentSelectedPattern.id);
+        closeModal();
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.innerText = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    // Immediate & Safe Font Ready Initialization
+    document.addEventListener('DOMContentLoaded', () => {
+      updateGrid();
+
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+          updateGrid();
+        }).catch(err => {
+          console.warn('fonts.ready error:', err);
+          updateGrid();
+        });
+      }
+    });
+  </script>
+</body>
+</html>
